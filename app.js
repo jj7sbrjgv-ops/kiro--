@@ -68,25 +68,9 @@ class StepCounterApp {
             console.log('StepCounterを初期化中...');
             this.stepCounter = new StepCounter(this.storageManager, this.sensorAdapter);
 
-            // 保存されたデータを読み込み、センサーのリスニングを開始
-            try {
-                await this.stepCounter.initialize();
-                console.log('StepCounterの初期化に成功しました');
-            } catch (error) {
-                console.error('センサーの初期化に失敗しました:', error);
-                
-                // センサーエラーの種類に応じたメッセージを表示
-                if (error.message.includes('permission denied')) {
-                    displayError('加速度センサーへのアクセスが拒否されました。設定から権限を許可してください。');
-                } else if (error.message.includes('not available')) {
-                    displayError('加速度センサーが利用できません。手動カウント機能のみ利用可能です。');
-                } else {
-                    displayError('センサーの初期化に失敗しました。一部の機能が制限される可能性があります。');
-                }
-                
-                // センサーが利用できなくても、アプリケーションは継続
-                // 手動カウント機能や設定変更は利用可能
-            }
+            // 保存されたデータを読み込む（センサーは後で手動で開始）
+            await this.stepCounter.initialize();
+            console.log('StepCounterの初期化に成功しました（センサーは未起動）');
 
             // 4. ResetTimerの初期化
             console.log('ResetTimerを初期化中...');

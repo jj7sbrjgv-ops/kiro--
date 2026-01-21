@@ -31,7 +31,9 @@ class SensorAdapter {
     if (typeof DeviceMotionEvent !== 'undefined' && 
         typeof DeviceMotionEvent.requestPermission === 'function') {
       try {
+        console.log('Requesting DeviceMotion permission...');
         const permission = await DeviceMotionEvent.requestPermission();
+        console.log('Permission response:', permission);
         return permission === 'granted';
       } catch (error) {
         console.error('Permission request failed:', error);
@@ -39,6 +41,7 @@ class SensorAdapter {
       }
     }
     // 権限リクエストが不要な環境（Android、古いiOSなど）
+    console.log('Permission request not required');
     return true;
   }
 
@@ -48,18 +51,27 @@ class SensorAdapter {
    * @throws {Error} センサーが利用できない場合、または権限が拒否された場合
    */
   async startListening(callback) {
+    console.log('startListening called, isListening:', this.isListening);
+    
     if (this.isListening) {
+      console.log('Already listening, skipping');
       return;
     }
 
     // センサーの利用可否を確認
     if (!this.isAvailable()) {
+      console.error('DeviceMotion API is not available');
       throw new Error('DeviceMotion API is not available');
     }
 
+    console.log('DeviceMotion API is available');
+
     // 権限をリクエスト
     const hasPermission = await this.requestPermission();
+    console.log('Permission result:', hasPermission);
+    
     if (!hasPermission) {
+      console.error('DeviceMotion permission denied');
       throw new Error('DeviceMotion permission denied');
     }
 
@@ -69,6 +81,7 @@ class SensorAdapter {
     // イベントリスナーをバインド（後で削除できるように）
     this.boundHandleMotion = this.handleMotion.bind(this);
     window.addEventListener('devicemotion', this.boundHandleMotion);
+    console.log('devicemotion event listener added');
   }
 
   /**
@@ -93,7 +106,15 @@ class SensorAdapter {
    * @param {DeviceMotionEvent} event - デバイスモーションイベント
    */
   handleMotion(event) {
-    if (!this.callback || !event.accelerationIncludingGravity) {
+    console.log('handleMotion called');
+    
+    if (!this.callback) {
+      console.warn('No callback registered');
+      return;
+    }
+    
+    if (!event.accelerationIncludingGravity) {
+      console.warn('No acceleration data in event');
       return;
     }
 
@@ -104,6 +125,7 @@ class SensorAdapter {
       z: event.accelerationIncludingGravity.z || 0
     };
 
+    console.log('Acceleration data:', acceleration);
     this.callback(acceleration);
   }
 }

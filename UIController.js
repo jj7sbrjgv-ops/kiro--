@@ -98,30 +98,23 @@ class UIController {
       
       this.elements.permissionButton.addEventListener('click', async () => {
         try {
-          // DeviceMotionEvent.requestPermissionが存在するか確認
-          if (typeof DeviceMotionEvent !== 'undefined' && 
-              typeof DeviceMotionEvent.requestPermission === 'function') {
-            const permission = await DeviceMotionEvent.requestPermission();
-            if (permission === 'granted') {
-              this.showSuccess('センサーへのアクセスが許可されました');
-              this.elements.permissionButton.style.display = 'none';
-              // センサーのリスニングを再開
-              await this.stepCounter.sensorAdapter.startListening(
-                this.stepCounter.onMotionDetected.bind(this.stepCounter)
-              );
-            } else {
-              this.showError('センサーへのアクセスが拒否されました');
-            }
-          } else {
-            this.showError('このデバイスではセンサー権限のリクエストが不要です');
-            // 手動カウントボタンを表示
-            if (this.elements.manualCountButton) {
-              this.elements.manualCountButton.style.display = 'block';
-            }
-          }
+          console.log('センサー権限ボタンがクリックされました');
+          
+          // センサーのリスニングを開始（権限リクエストを含む）
+          await this.stepCounter.startSensorListening();
+          
+          this.showSuccess('センサーが起動しました！デバイスを動かしてください');
+          this.elements.permissionButton.style.display = 'none';
+          console.log('センサーの起動に成功しました');
+          
         } catch (error) {
-          console.error('Permission request failed:', error);
-          this.showError('センサー権限のリクエストに失敗しました: ' + error.message);
+          console.error('センサーの起動に失敗:', error);
+          this.showError('センサーの起動に失敗しました: ' + error.message);
+          
+          // 手動カウントボタンを表示
+          if (this.elements.manualCountButton) {
+            this.elements.manualCountButton.style.display = 'block';
+          }
         }
       });
     }

@@ -32,6 +32,7 @@ class StepCounter {
    * @returns {Promise<void>}
    * 
    * 要件: 2.2 - アプリ起動時のデータ読み込み
+   * 注意: センサーの起動は別途行う必要があります（iOS対応のため）
    */
   async initialize() {
     const savedData = this.storageManager.loadStepData();
@@ -48,13 +49,20 @@ class StepCounter {
         timestamp: Date.now()
       });
     }
+    
+    console.log('StepCounter initialized with', this.currentSteps, 'steps');
+  }
 
-    // センサーのリスニングを開始
+  /**
+   * センサーのリスニングを開始
+   * @returns {Promise<void>}
+   */
+  async startSensorListening() {
     try {
       await this.sensorAdapter.startListening(this.onMotionDetected.bind(this));
+      console.log('Sensor listening started successfully');
     } catch (error) {
       console.error('Failed to start sensor listening:', error);
-      // センサーが利用できない場合でも、手動カウント機能は利用可能
       throw error;
     }
   }
