@@ -117,8 +117,11 @@ class StepCounter {
     const timeSinceLastStep = now - this.lastStepTime;
     
     // 閾値を超えており、かつ最小間隔が経過している場合のみ歩数として認識
-    if (magnitude > this.stepThreshold && timeSinceLastStep >= this.minStepInterval) {
+    const isStepDetected = magnitude > this.stepThreshold && timeSinceLastStep >= this.minStepInterval;
+    
+    if (isStepDetected) {
       this.lastStepTime = now;
+      console.log(`✅ 歩数検出! magnitude=${magnitude.toFixed(2)} > threshold=${this.stepThreshold}`);
       return true;
     }
     
@@ -253,14 +256,14 @@ class StepCounter {
    */
   notifyMotionDetected(acceleration, magnitude) {
     // デバッグ情報をコンソールに出力
-    if (this.motionCount % 10 === 0) { // 10回に1回だけ出力
-      console.log(`Motion #${this.motionCount}: x=${acceleration.x.toFixed(2)}, y=${acceleration.y.toFixed(2)}, z=${acceleration.z.toFixed(2)}, magnitude=${magnitude.toFixed(2)}, threshold=${this.stepThreshold}`);
+    if (this.motionCount % 20 === 0) { // 20回に1回だけ出力
+      console.log(`📱 Motion #${this.motionCount}: x=${acceleration.x.toFixed(2)}, y=${acceleration.y.toFixed(2)}, z=${acceleration.z.toFixed(2)}, magnitude=${magnitude.toFixed(2)}, threshold=${this.stepThreshold}`);
     }
     
     // 最大値を記録（デバッグ用）
     if (!this.maxMagnitude || magnitude > this.maxMagnitude) {
       this.maxMagnitude = magnitude;
-      console.log(`新しい最大値: ${magnitude.toFixed(2)} m/s²`);
+      console.log(`📱 新しい最大値: ${magnitude.toFixed(2)} m/s²`);
     }
   }
 

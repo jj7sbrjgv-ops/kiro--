@@ -99,14 +99,29 @@ class SensorAdapter {
     
     // iOS 18対応: passive: false を明示的に指定
     window.addEventListener('devicemotion', this.boundHandleMotion, { passive: false });
-    console.log('devicemotion event listener added with passive: false');
+    console.log('✅ devicemotion event listener added with passive: false');
+    console.log('📱 センサーアダプター状態:', {
+      isListening: this.isListening,
+      hasCallback: !!this.callback,
+      permissionGranted: this.permissionGranted
+    });
     
-    // テストイベントを発火して確認
+    // モーションイベントが実際に発火しているか確認
+    let motionEventsReceived = 0;
+    const testHandler = () => {
+      motionEventsReceived++;
+      if (motionEventsReceived === 1) {
+        console.log('✅ 最初のモーションイベントを検出');
+      }
+    };
+    window.addEventListener('devicemotion', testHandler, { passive: false });
+    
     setTimeout(() => {
-      if (!this.isListening) {
-        console.warn('Sensor might not be working after 2 seconds');
+      window.removeEventListener('devicemotion', testHandler);
+      if (motionEventsReceived === 0) {
+        console.warn('⚠️ 2秒以内にモーションイベントが検出されません - センサーが外れている候補');
       } else {
-        console.log('Sensor listener is active');
+        console.log(`✅ ${motionEventsReceived}件のモーションイベントを検出しました`);
       }
     }, 2000);
   }
@@ -140,27 +155,32 @@ class SensorAdapter {
     }
     
     // iOS 18では accelerationIncludingGravity が null の場合がある
-    // acceleration も試す
-    const accelData = event.accelerationIncludingGravity || event.acceleration;
+    // acceleration, rotationRate の順で試す
+    let accelData = event.accelerationIncludingGravity;
+    if (!accelData) {
+      accelData = event.acceleration;
+    }
+    if (!accelData) {
+      // それでもない場合は rotationRate を使用（最後の手段）
+      accelData = event.rotationRate;
+    }
     
     if (!accelData) {
       console.warn('handleMotion: No acceleration data in event');
       return;
     }
 
-    // 加速度データを抽出（nullの場合は0を使用）
+    // 加速度データを抽出（null/undefinedの場合は0を使用）
     const acceleration = {
-      x: accelData.x ?? 0,
-      y: accelData.y ?? 0,
-      z: accelData.z ?? 0
+      x: (accelData.x !== null && accelData.x !== undefined) ? accelData.x : 0,
+      y: (accelData.y !== null && accelData.y !== undefined) ? accelData.y : 0,
+      z: (accelData.z !== null && accelData.z !== undefined) ? accelData.z : 0
     };
 
-    // 全てが0の場合はスキップ（無効なデータ）
-    if (acceleration.x === 0 && acceleration.y === 0 && acceleration.z === 0) {
-      return;
+    // 計算可能なデータのみを処理（厳密な0チェックは削除）
+    if (typeof acceleration.x === 'number' && typeof acceleration.y === 'number' && typeof acceleration.z === 'number') {
+      this.callback(acceleration);
     }
-
-    this.callback(acceleration);
   }
 }
 
