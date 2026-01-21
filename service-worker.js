@@ -3,7 +3,7 @@
  * PWA対応のためのサービスワーカー
  */
 
-const CACHE_NAME = 'step-counter-v2';
+const CACHE_NAME = 'step-counter-v3';
 const urlsToCache = [
   './',
   './index.html',
@@ -13,7 +13,10 @@ const urlsToCache = [
   './SensorAdapter.js',
   './StepCounter.js',
   './ResetTimer.js',
-  './UIController.js'
+  './UIController.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 // インストール時にキャッシュを作成
@@ -33,26 +36,44 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // ナビゲーションリクエストはindex.htmlを返してPWA内ルーティングを維持
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      caches.match('./index.html').then((cached) => {
-        if (cached) return cached;
-        return fetch('./index.html');
-      })
-    );
+  // POSTなどはそのままネットワークへ
+  if (request.method !== 'GET') {
     return;
   }
 
-  event.respondWith(
-    caches.match(request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        return fetch(request);
-      })
-  );
+  // ナビゲーションリクエストはオフラインでもindexを返す
+  if (request.mode === 'navigate') {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cachedIndex = await cache.match('./index.html');
+
+      try {
+        // オンラインなら通常のレスポンス
+        const networkResponse = await fetch(request);
+        return networkResponse;
+      } catch (error) {
+        // オフライン時はキャッシュしたindexを返す
+        if (cachedIndex) return cachedIndex;
+        throw error;
+      }
+    })());
+    return;
+  }
+
+  // その他のGETリクエストはキャッシュ優先、なければネットワーク、失敗時はindexにフォールバック
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+
+    try {
+      const networkResponse = await fetch(request);
+      return networkResponse;
+    } catch (error) {
+      const fallback = await caches.match('./index.html');
+      if (fallback) return fallback;
+      throw error;
+    }
+  })());
 });
 
 // 古いキャッシュを削除
