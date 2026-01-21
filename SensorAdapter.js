@@ -6,12 +6,15 @@
  * - 1.3: センサーへのアクセス権限を要求
  * - 1.4: センサーアクセス拒否時のエラーハンドリング
  * - 7.1: センサー利用不可時のエラーハンドリング
+ * 
+ * iOS 18.2対応版
  */
 class SensorAdapter {
   constructor() {
     this.isListening = false;
     this.callback = null;
     this.boundHandleMotion = null;
+    this.permissionGranted = false;
   }
 
   /**
@@ -19,7 +22,7 @@ class SensorAdapter {
    * @returns {boolean} センサーが利用可能な場合はtrue
    */
   isAvailable() {
-    return 'DeviceMotionEvent' in window;
+    return typeof DeviceMotionEvent !== 'undefined' && 'DeviceMotionEvent' in window;
   }
 
   /**
@@ -27,21 +30,31 @@ class SensorAdapter {
    * @returns {Promise<boolean>} 権限が付与された場合はtrue
    */
   async requestPermission() {
+    // 既に権限が付与されている場合
+    if (this.permissionGranted) {
+      console.log('Permission already granted');
+      return true;
+    }
+
     // iOS 13+では明示的な権限リクエストが必要
     if (typeof DeviceMotionEvent !== 'undefined' && 
         typeof DeviceMotionEvent.requestPermission === 'function') {
       try {
-        console.log('Requesting DeviceMotion permission...');
+        console.log('Requesting DeviceMotion permission (iOS 13+)...');
         const permission = await DeviceMotionEvent.requestPermission();
         console.log('Permission response:', permission);
-        return permission === 'granted';
+        
+        this.permissionGranted = (permission === 'granted');
+        return this.permissionGranted;
       } catch (error) {
         console.error('Permission request failed:', error);
         return false;
       }
     }
+    
     // 権限リクエストが不要な環境（Android、古いiOSなど）
-    console.log('Permission request not required');
+    console.log('Permission request not required (non-iOS or old iOS)');
+    this.permissionGranted = true;
     return true;
   }
 
@@ -68,7 +81,7 @@ class SensorAdapter {
     console.log('DeviceMotion API is available');
 
     // 権限をリクエスト（スキップしない場合のみ）
-    if (!skipPermission) {
+    if (!skipPermission && !this.permissionGranted) {
       const hasPermission = await this.requestPermission();
       console.log('Permission result:', hasPermission);
       
@@ -83,8 +96,19 @@ class SensorAdapter {
 
     // イベントリスナーをバインド（後で削除できるように）
     this.boundHandleMotion = this.handleMotion.bind(this);
-    window.addEventListener('devicemotion', this.boundHandleMotion);
-    console.log('devicemotion event listener added');
+    
+    // iOS 18対応: passive: false を明示的に指定
+    window.addEventListener('devicemotion', this.boundHandleMotion, { passive: false });
+    console.log('devicemotion event listener added with passive: false');
+    
+    // テストイベントを発火して確認
+    setTimeout(() => {
+      if (!this.isListening) {
+        console.warn('Sensor might not be working after 2 seconds');
+      } else {
+        console.log('Sensor listener is active');
+      }
+    }, 2000);
   }
 
   /**
@@ -102,6 +126,7 @@ class SensorAdapter {
     
     this.isListening = false;
     this.callback = null;
+    console.log('Sensor listening stopped');
   }
 
   /**
@@ -109,26 +134,32 @@ class SensorAdapter {
    * @param {DeviceMotionEvent} event - デバイスモーションイベント
    */
   handleMotion(event) {
-    console.log('handleMotion called');
-    
     if (!this.callback) {
-      console.warn('No callback registered');
+      console.warn('handleMotion: No callback registered');
       return;
     }
     
-    if (!event.accelerationIncludingGravity) {
-      console.warn('No acceleration data in event');
+    // iOS 18では accelerationIncludingGravity が null の場合がある
+    // acceleration も試す
+    const accelData = event.accelerationIncludingGravity || event.acceleration;
+    
+    if (!accelData) {
+      console.warn('handleMotion: No acceleration data in event');
       return;
     }
 
     // 加速度データを抽出（nullの場合は0を使用）
     const acceleration = {
-      x: event.accelerationIncludingGravity.x || 0,
-      y: event.accelerationIncludingGravity.y || 0,
-      z: event.accelerationIncludingGravity.z || 0
+      x: accelData.x ?? 0,
+      y: accelData.y ?? 0,
+      z: accelData.z ?? 0
     };
 
-    console.log('Acceleration data:', acceleration);
+    // 全てが0の場合はスキップ（無効なデータ）
+    if (acceleration.x === 0 && acceleration.y === 0 && acceleration.z === 0) {
+      return;
+    }
+
     this.callback(acceleration);
   }
 }

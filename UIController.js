@@ -41,7 +41,8 @@ class UIController {
       manualCountButton: document.getElementById('manual-count-btn'),
       debugInfo: document.getElementById('debug-info'),
       sensorStatus: document.getElementById('sensor-status'),
-      sensorStatusText: document.getElementById('sensor-status-text')
+      sensorStatusText: document.getElementById('sensor-status-text'),
+      iosSettingsHelp: document.getElementById('ios-settings-help')
     };
 
     // デバッグ情報を表示
@@ -94,6 +95,10 @@ class UIController {
       
       if (isIOS) {
         this.elements.permissionButton.style.display = 'block';
+        // 手動カウントボタンも表示（センサーが使えない場合の代替手段）
+        if (this.elements.manualCountButton) {
+          this.elements.manualCountButton.style.display = 'block';
+        }
       }
       
       this.elements.permissionButton.addEventListener('click', async () => {
@@ -117,16 +122,29 @@ class UIController {
                 true // skipPermission = true
               );
               
-              this.showSuccess('センサーが起動しました！デバイスを動かしてください');
+              this.showSuccess('センサーが起動しました！歩いてみてください');
               this.elements.permissionButton.style.display = 'none';
+              
+              // iOS設定案内を非表示
+              if (this.elements.iosSettingsHelp) {
+                this.elements.iosSettingsHelp.style.display = 'none';
+              }
+              
               console.log('センサーの起動に成功しました');
             } else {
               console.error('権限が拒否されました');
               this.showError('センサーへのアクセスが拒否されました');
               
-              // 手動カウントボタンを表示
+              // iOS設定案内を表示
+              if (this.elements.iosSettingsHelp) {
+                this.elements.iosSettingsHelp.style.display = 'block';
+              }
+              
+              // 手動カウントボタンを強調表示
               if (this.elements.manualCountButton) {
                 this.elements.manualCountButton.style.display = 'block';
+                this.elements.manualCountButton.style.background = '#28a745';
+                this.elements.manualCountButton.textContent = '👆 手動カウントを使う';
               }
             }
           } else {
@@ -136,18 +154,25 @@ class UIController {
             // センサーのリスニングを開始
             await this.stepCounter.startSensorListening();
             
-            this.showSuccess('センサーが起動しました！デバイスを動かしてください');
+            this.showSuccess('センサーが起動しました！歩いてみてください');
             this.elements.permissionButton.style.display = 'none';
             console.log('センサーの起動に成功しました');
           }
           
         } catch (error) {
           console.error('センサーの起動に失敗:', error);
-          this.showError('センサーの起動に失敗しました: ' + error.message);
+          this.showError('センサーの起動に失敗: ' + error.message);
           
-          // 手動カウントボタンを表示
+          // iOS設定案内を表示
+          if (this.elements.iosSettingsHelp) {
+            this.elements.iosSettingsHelp.style.display = 'block';
+          }
+          
+          // 手動カウントボタンを強調表示
           if (this.elements.manualCountButton) {
             this.elements.manualCountButton.style.display = 'block';
+            this.elements.manualCountButton.style.background = '#28a745';
+            this.elements.manualCountButton.textContent = '👆 手動カウントを使う';
           }
         }
       });
@@ -171,11 +196,21 @@ class UIController {
       const hasRequestPermission = typeof DeviceMotionEvent !== 'undefined' && 
                                     typeof DeviceMotionEvent.requestPermission === 'function';
       
-      info.push(`ブラウザ: ${isIOS ? 'iOS' : navigator.userAgent.includes('Android') ? 'Android' : 'その他'}`);
-      info.push(`HTTPS: ${location.protocol === 'https:' ? 'はい' : 'いいえ'}`);
-      info.push(`DeviceMotion: ${typeof DeviceMotionEvent !== 'undefined' ? '利用可能' : '利用不可'}`);
+      // iOSバージョンを取得
+      let iosVersion = 'N/A';
+      if (isIOS) {
+        const match = navigator.userAgent.match(/OS (\d+)_(\d+)/);
+        if (match) {
+          iosVersion = `${match[1]}.${match[2]}`;
+        }
+      }
+      
+      info.push(`ブラウザ: ${isIOS ? `iOS ${iosVersion}` : navigator.userAgent.includes('Android') ? 'Android' : 'その他'}`);
+      info.push(`HTTPS: ${location.protocol === 'https:' ? '✅ はい' : '❌ いいえ'}`);
+      info.push(`DeviceMotion: ${typeof DeviceMotionEvent !== 'undefined' ? '✅ 利用可能' : '❌ 利用不可'}`);
       info.push(`requestPermission: ${hasRequestPermission ? '必要（iOS 13+）' : '不要'}`);
-      info.push(`センサー起動: ${this.stepCounter.sensorAdapter.isListening ? 'はい' : 'いいえ'}`);
+      info.push(`権限状態: ${this.stepCounter.sensorAdapter.permissionGranted ? '✅ 許可済み' : '❌ 未許可'}`);
+      info.push(`センサー起動: ${this.stepCounter.sensorAdapter.isListening ? '✅ はい' : '❌ いいえ'}`);
       info.push(`閾値: ${this.stepCounter.stepThreshold} m/s²`);
       info.push(`最小間隔: ${this.stepCounter.minStepInterval} ms`);
       info.push(`モーション検出: ${this.stepCounter.motionCount}回`);
@@ -188,15 +223,15 @@ class UIController {
         if (this.stepCounter.motionCount > 0) {
           this.elements.sensorStatus.style.background = '#d4edda';
           this.elements.sensorStatus.style.color = '#155724';
-          this.elements.sensorStatusText.textContent = `センサー動作中 (${this.stepCounter.motionCount}回検出)`;
+          this.elements.sensorStatusText.textContent = `✅ センサー動作中 (${this.stepCounter.motionCount}回検出)`;
         } else if (this.stepCounter.sensorAdapter.isListening) {
           this.elements.sensorStatus.style.background = '#cce5ff';
           this.elements.sensorStatus.style.color = '#004085';
-          this.elements.sensorStatusText.textContent = 'センサー起動済み (デバイスを動かしてください)';
+          this.elements.sensorStatusText.textContent = '⏳ センサー起動済み (歩いてみてください)';
         } else {
           this.elements.sensorStatus.style.background = '#fff3cd';
           this.elements.sensorStatus.style.color = '#856404';
-          this.elements.sensorStatusText.textContent = 'センサー待機中... (ボタンをタップしてください)';
+          this.elements.sensorStatusText.textContent = '⚠️ センサー待機中 (ボタンをタップ)';
         }
       }
     };

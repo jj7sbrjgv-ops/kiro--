@@ -30,8 +30,24 @@
                 <button id="request-permission-btn" class="btn-primary" style="margin-top: 1rem;">
                     センサーを有効にする
                 </button>
+                
+                <!-- iOS設定案内 -->
+                <div id="ios-settings-help" style="display: none; margin-top: 1rem; padding: 1rem; background: #e7f3ff; border-radius: 8px; font-size: 0.9rem; text-align: left;">
+                    <strong>📱 iOS 18の設定を確認してください：</strong><br>
+                    <br>
+                    <strong>方法1: Safari設定</strong><br>
+                    1. 設定 → Safari<br>
+                    2. 「モーションと画面の向き」をオンにする<br>
+                    <br>
+                    <strong>方法2: プライバシー設定</strong><br>
+                    1. 設定 → プライバシーとセキュリティ<br>
+                    2. 「モーションとフィットネス」をオンにする<br>
+                    <br>
+                    設定後、Safariを完全に閉じて再度開いてください
+                </div>
+                
                 <!-- 手動カウントボタン（センサーが使えない場合） -->
-                <button id="manual-count-btn" class="btn-primary" style="margin-top: 1rem;">
+                <button id="manual-count-btn" class="btn-primary" style="margin-top: 1rem; display: none;">
                     手動で1歩追加
                 </button>
             </section>
