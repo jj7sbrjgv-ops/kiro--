@@ -5,15 +5,15 @@
 
 const CACHE_NAME = 'step-counter-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/StorageManager.js',
-  '/SensorAdapter.js',
-  '/StepCounter.js',
-  '/ResetTimer.js',
-  '/UIController.js'
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './StorageManager.js',
+  './SensorAdapter.js',
+  './StepCounter.js',
+  './ResetTimer.js',
+  './UIController.js'
 ];
 
 // インストール時にキャッシュを作成
