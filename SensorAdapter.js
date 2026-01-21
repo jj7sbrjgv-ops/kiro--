@@ -168,3 +168,8 @@ class SensorAdapter {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = SensorAdapter;
 }
+
+// ブラウザ環境にクラスを公開
+if (typeof window !== 'undefined') {
+  window.SensorAdapter = SensorAdapter;
+}

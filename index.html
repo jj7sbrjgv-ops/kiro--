@@ -2,10 +2,16 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="スマートフォン向け歩数計アプリケーション">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="歩数計">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>歩数計アプリ</title>
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
+    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
     <div class="container">
@@ -20,46 +26,45 @@
                     <div id="step-display" class="step-display">0</div>
                     <div class="step-label">歩</div>
                 </div>
+                
+                <!-- PWA インストール案内 -->
+                <div id="pwa-install-prompt" style="margin-top: 1rem; padding: 1rem; background: #e7f3ff; border: 2px solid #007bff; border-radius: 8px; font-size: 0.9rem; text-align: left;">
+                    <strong>� ホーム画面に追加してください</strong><br>
+                    <br>
+                    iPhoneのブラウザでは、センサーの制限があります。<br>
+                    <strong>ホーム画面に追加</strong>することで、センサーが正常に動作します。<br>
+                    <br>
+                    <strong>手順：</strong><br>
+                    1. 画面下部の「共有」ボタン（□↑）をタップ<br>
+                    2. 「ホーム画面に追加」をタップ<br>
+                    3. 「追加」をタップ<br>
+                    4. ホーム画面のアイコンからアプリを起動<br>
+                    <br>
+                    <div style="background: #fff3cd; padding: 0.5rem; border-radius: 4px; margin-top: 0.5rem;">
+                        ⚠️ 必ずホーム画面から起動してください
+                    </div>
+                </div>
+                
                 <!-- センサー状態インジケーター -->
                 <div id="sensor-status" style="margin-top: 1rem; padding: 0.5rem; border-radius: 8px; background: #f0f0f0; text-align: center;">
                     <span id="sensor-status-text">センサー待機中...</span>
                 </div>
-                <!-- デバッグ情報 -->
-                <div id="debug-info" style="margin-top: 1rem; font-size: 0.8rem; color: #666; text-align: left; padding: 0.5rem; background: #f9f9f9; border-radius: 4px;"></div>
-                <!-- センサー権限リクエストボタン（iOS用） -->
-                <button id="request-permission-btn" class="btn-primary" style="margin-top: 1rem;">
-                    センサーを有効にする
+                
+                <!-- センサー権限リクエストボタン -->
+                <button id="request-permission-btn" class="btn-primary" style="margin-top: 1rem; font-size: 1.1rem; padding: 1rem 2rem;">
+                    🚀 センサーを起動する
                 </button>
                 
-                <!-- iOS設定案内 -->
-                <div id="ios-settings-help" style="display: none; margin-top: 1rem; padding: 1rem; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; font-size: 0.9rem; text-align: left;">
-                    <strong>⚠️ センサーが使えない場合の対処法</strong><br>
-                    <br>
-                    <strong>📱 iOS 18の設定を確認：</strong><br>
-                    <br>
-                    <strong>1. Safari設定</strong><br>
-                    設定 → Safari → 「モーションと画面の向き」をオンにする<br>
-                    <br>
-                    <strong>2. プライバシー設定</strong><br>
-                    設定 → プライバシーとセキュリティ → 「モーションとフィットネス」をオンにする<br>
-                    <br>
-                    <strong>3. サイト別設定をリセット</strong><br>
-                    設定 → Safari → 詳細 → Webサイトデータ → このサイトを削除<br>
-                    <br>
-                    <strong>4. Safariを完全に閉じる</strong><br>
-                    ホームボタンを2回押して、Safariを上にスワイプ<br>
-                    <br>
-                    <strong>5. もう一度このページを開く</strong><br>
-                    <br>
-                    <div style="background: #e7f3ff; padding: 0.5rem; border-radius: 4px; margin-top: 0.5rem;">
-                        💡 それでもダメな場合は、下の「手動カウント」ボタンをご利用ください
-                    </div>
-                </div>
-                
-                <!-- 手動カウントボタン（センサーが使えない場合） -->
-                <button id="manual-count-btn" class="btn-primary" style="margin-top: 1rem; display: none;">
-                    手動で1歩追加
+                <!-- 手動カウントボタン（バックアップ） -->
+                <button id="manual-count-btn" class="btn-secondary" style="margin-top: 1rem; display: none; font-size: 0.9rem;">
+                    👣 手動で1歩追加
                 </button>
+                
+                <!-- デバッグ情報（折りたたみ可能） -->
+                <details style="margin-top: 1rem;">
+                    <summary style="cursor: pointer; color: #666; font-size: 0.9rem;">🔍 デバッグ情報を表示</summary>
+                    <div id="debug-info" style="margin-top: 0.5rem; font-size: 0.8rem; color: #666; text-align: left; padding: 0.5rem; background: #f9f9f9; border-radius: 4px;"></div>
+                </details>
             </section>
 
             <!-- 次回リセット時刻表示 -->
@@ -105,5 +110,18 @@
     
     <!-- アプリケーションのエントリーポイント -->
     <script src="app.js"></script>
+    
+    <!-- Service Worker登録 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then((registration) => {
+                    console.log('Service Worker registered:', registration);
+                })
+                .catch((error) => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+    </script>
 </body>
 </html>
