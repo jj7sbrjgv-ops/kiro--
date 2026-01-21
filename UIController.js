@@ -101,50 +101,74 @@ class UIController {
         }
       }
       
-      this.elements.permissionButton.addEventListener('click', async () => {
+      this.elements.permissionButton.addEventListener('click', async (event) => {
+        // イベント伝播を停止
+        event.preventDefault();
+        event.stopPropagation();
+        
         try {
-          console.log('センサー権限ボタンがクリックされました');
+          console.log('=== センサー権限ボタンがクリックされました ===');
+          console.log('DeviceMotionEvent:', typeof DeviceMotionEvent);
+          console.log('requestPermission:', typeof DeviceMotionEvent?.requestPermission);
           
           // iOS 13+の場合、ここで直接権限をリクエスト（ユーザージェスチャー内で実行）
           if (typeof DeviceMotionEvent !== 'undefined' && 
               typeof DeviceMotionEvent.requestPermission === 'function') {
-            console.log('iOS: requestPermission を呼び出します');
+            console.log('iOS 13+: requestPermission を呼び出します');
             
-            const permission = await DeviceMotionEvent.requestPermission();
-            console.log('権限の結果:', permission);
-            
-            if (permission === 'granted') {
-              console.log('権限が許可されました');
+            try {
+              // 権限リクエストを直接実行（awaitなし）
+              const permissionPromise = DeviceMotionEvent.requestPermission();
+              console.log('Permission promise created:', permissionPromise);
               
-              // 権限取得後、センサーのリスニングを開始（権限リクエストはスキップ）
-              await this.stepCounter.sensorAdapter.startListening(
-                this.stepCounter.onMotionDetected.bind(this.stepCounter),
-                true // skipPermission = true
-              );
+              const permission = await permissionPromise;
+              console.log('権限の結果:', permission);
               
-              this.showSuccess('センサーが起動しました！歩いてみてください');
-              this.elements.permissionButton.style.display = 'none';
-              
-              // iOS設定案内を非表示
-              if (this.elements.iosSettingsHelp) {
-                this.elements.iosSettingsHelp.style.display = 'none';
+              if (permission === 'granted') {
+                console.log('✅ 権限が許可されました');
+                
+                // 権限取得後、センサーのリスニングを開始（権限リクエストはスキップ）
+                this.stepCounter.sensorAdapter.permissionGranted = true;
+                await this.stepCounter.sensorAdapter.startListening(
+                  this.stepCounter.onMotionDetected.bind(this.stepCounter),
+                  true // skipPermission = true
+                );
+                
+                this.showSuccess('✅ センサーが起動しました！歩いてみてください');
+                this.elements.permissionButton.style.display = 'none';
+                
+                // iOS設定案内を非表示
+                if (this.elements.iosSettingsHelp) {
+                  this.elements.iosSettingsHelp.style.display = 'none';
+                }
+                
+                console.log('センサーの起動に成功しました');
+              } else if (permission === 'denied') {
+                console.error('❌ 権限が拒否されました');
+                this.showError('センサーへのアクセスが拒否されました');
+                
+                // iOS設定案内を表示
+                if (this.elements.iosSettingsHelp) {
+                  this.elements.iosSettingsHelp.style.display = 'block';
+                }
+                
+                // 手動カウントボタンを強調表示
+                if (this.elements.manualCountButton) {
+                  this.elements.manualCountButton.style.display = 'block';
+                  this.elements.manualCountButton.style.background = '#28a745';
+                  this.elements.manualCountButton.textContent = '👆 手動カウントを使う';
+                }
+              } else {
+                console.warn('⚠️ 不明な権限状態:', permission);
+                this.showError('権限の状態が不明です: ' + permission);
               }
-              
-              console.log('センサーの起動に成功しました');
-            } else {
-              console.error('権限が拒否されました');
-              this.showError('センサーへのアクセスが拒否されました');
+            } catch (permError) {
+              console.error('❌ requestPermission でエラー:', permError);
+              this.showError('権限リクエストでエラーが発生しました: ' + permError.message);
               
               // iOS設定案内を表示
               if (this.elements.iosSettingsHelp) {
                 this.elements.iosSettingsHelp.style.display = 'block';
-              }
-              
-              // 手動カウントボタンを強調表示
-              if (this.elements.manualCountButton) {
-                this.elements.manualCountButton.style.display = 'block';
-                this.elements.manualCountButton.style.background = '#28a745';
-                this.elements.manualCountButton.textContent = '👆 手動カウントを使う';
               }
             }
           } else {
@@ -154,13 +178,14 @@ class UIController {
             // センサーのリスニングを開始
             await this.stepCounter.startSensorListening();
             
-            this.showSuccess('センサーが起動しました！歩いてみてください');
+            this.showSuccess('✅ センサーが起動しました！歩いてみてください');
             this.elements.permissionButton.style.display = 'none';
             console.log('センサーの起動に成功しました');
           }
           
         } catch (error) {
-          console.error('センサーの起動に失敗:', error);
+          console.error('❌ センサーの起動に失敗:', error);
+          console.error('Error stack:', error.stack);
           this.showError('センサーの起動に失敗: ' + error.message);
           
           // iOS設定案内を表示
