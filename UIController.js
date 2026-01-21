@@ -87,13 +87,18 @@ class UIController {
 
     // センサー権限リクエストボタン（iOS用）
     if (this.elements.permissionButton) {
-      // iOS 13+でDeviceMotionEvent.requestPermissionが存在する場合のみボタンを表示
-      if (typeof DeviceMotionEvent !== 'undefined' && 
-          typeof DeviceMotionEvent.requestPermission === 'function') {
+      // iOSの場合は常にボタンを表示
+      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+      
+      if (isIOS) {
         this.elements.permissionButton.style.display = 'block';
-        
-        this.elements.permissionButton.addEventListener('click', async () => {
-          try {
+      }
+      
+      this.elements.permissionButton.addEventListener('click', async () => {
+        try {
+          // DeviceMotionEvent.requestPermissionが存在するか確認
+          if (typeof DeviceMotionEvent !== 'undefined' && 
+              typeof DeviceMotionEvent.requestPermission === 'function') {
             const permission = await DeviceMotionEvent.requestPermission();
             if (permission === 'granted') {
               this.showSuccess('センサーへのアクセスが許可されました');
@@ -105,17 +110,18 @@ class UIController {
             } else {
               this.showError('センサーへのアクセスが拒否されました');
             }
-          } catch (error) {
-            console.error('Permission request failed:', error);
-            this.showError('センサー権限のリクエストに失敗しました');
+          } else {
+            this.showError('このデバイスではセンサー権限のリクエストが不要です');
+            // 手動カウントボタンを表示
+            if (this.elements.manualCountButton) {
+              this.elements.manualCountButton.style.display = 'block';
+            }
           }
-        });
-      } else {
-        // iOS以外またはセンサーが利用できない場合は手動カウントボタンを表示
-        if (this.elements.manualCountButton) {
-          this.elements.manualCountButton.style.display = 'block';
+        } catch (error) {
+          console.error('Permission request failed:', error);
+          this.showError('センサー権限のリクエストに失敗しました: ' + error.message);
         }
-      }
+      });
     }
 
     // 歩数カウンターの変更を監視（リアルタイム更新）
