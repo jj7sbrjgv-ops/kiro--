@@ -20,6 +20,16 @@
                     <div id="step-display" class="step-display">0</div>
                     <div class="step-label">歩</div>
                 </div>
+                <!-- デバッグ情報 -->
+                <div id="debug-info" style="margin-top: 1rem; font-size: 0.8rem; color: #666;"></div>
+                <!-- センサー権限リクエストボタン（iOS用） -->
+                <button id="request-permission-btn" class="btn-primary" style="display: none; margin-top: 1rem;">
+                    センサーを有効にする
+                </button>
+                <!-- 手動カウントボタン（センサーが使えない場合） -->
+                <button id="manual-count-btn" class="btn-primary" style="margin-top: 1rem;">
+                    手動で1歩追加
+                </button>
             </section>
 
             <!-- 次回リセット時刻表示 -->

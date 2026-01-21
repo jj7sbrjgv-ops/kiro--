@@ -36,8 +36,14 @@ class UIController {
       nextResetDisplay: document.getElementById('next-reset'),
       resetTimeInput: document.getElementById('reset-time-input'),
       saveButton: document.getElementById('save-reset-time'),
-      errorMessage: document.getElementById('error-message')
+      errorMessage: document.getElementById('error-message'),
+      permissionButton: document.getElementById('request-permission-btn'),
+      manualCountButton: document.getElementById('manual-count-btn'),
+      debugInfo: document.getElementById('debug-info')
     };
+
+    // デバッグ情報を表示
+    this.showDebugInfo();
 
     // 必須要素の存在確認
     const requiredElements = ['stepDisplay', 'nextResetDisplay', 'resetTimeInput', 'saveButton', 'errorMessage'];
@@ -71,10 +77,66 @@ class UIController {
       this.handleResetTimeChange();
     });
 
+    // 手動カウントボタン
+    if (this.elements.manualCountButton) {
+      this.elements.manualCountButton.addEventListener('click', () => {
+        this.stepCounter.incrementStep();
+        this.showSuccess('1歩追加しました');
+      });
+    }
+
+    // センサー権限リクエストボタン（iOS用）
+    if (this.elements.permissionButton) {
+      // iOS 13+でDeviceMotionEvent.requestPermissionが存在する場合のみボタンを表示
+      if (typeof DeviceMotionEvent !== 'undefined' && 
+          typeof DeviceMotionEvent.requestPermission === 'function') {
+        this.elements.permissionButton.style.display = 'block';
+        
+        this.elements.permissionButton.addEventListener('click', async () => {
+          try {
+            const permission = await DeviceMotionEvent.requestPermission();
+            if (permission === 'granted') {
+              this.showSuccess('センサーへのアクセスが許可されました');
+              this.elements.permissionButton.style.display = 'none';
+              // センサーのリスニングを再開
+              await this.stepCounter.sensorAdapter.startListening(
+                this.stepCounter.onMotionDetected.bind(this.stepCounter)
+              );
+            } else {
+              this.showError('センサーへのアクセスが拒否されました');
+            }
+          } catch (error) {
+            console.error('Permission request failed:', error);
+            this.showError('センサー権限のリクエストに失敗しました');
+          }
+        });
+      } else {
+        // iOS以外またはセンサーが利用できない場合は手動カウントボタンを表示
+        if (this.elements.manualCountButton) {
+          this.elements.manualCountButton.style.display = 'block';
+        }
+      }
+    }
+
     // 歩数カウンターの変更を監視（リアルタイム更新）
     this.stepCounter.addObserver(() => {
       this.updateDisplay();
     });
+  }
+
+  /**
+   * デバッグ情報を表示
+   */
+  showDebugInfo() {
+    if (!this.elements.debugInfo) return;
+
+    const info = [];
+    info.push(`ブラウザ: ${navigator.userAgent.includes('iPhone') ? 'iOS' : navigator.userAgent.includes('Android') ? 'Android' : 'その他'}`);
+    info.push(`HTTPS: ${location.protocol === 'https:' ? 'はい' : 'いいえ'}`);
+    info.push(`DeviceMotion: ${typeof DeviceMotionEvent !== 'undefined' ? '利用可能' : '利用不可'}`);
+    info.push(`requestPermission: ${typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function' ? '必要' : '不要'}`);
+    
+    this.elements.debugInfo.innerHTML = info.join('<br>');
   }
 
   /**
