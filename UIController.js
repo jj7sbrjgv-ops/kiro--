@@ -100,12 +100,46 @@ class UIController {
         try {
           console.log('センサー権限ボタンがクリックされました');
           
-          // センサーのリスニングを開始（権限リクエストを含む）
-          await this.stepCounter.startSensorListening();
-          
-          this.showSuccess('センサーが起動しました！デバイスを動かしてください');
-          this.elements.permissionButton.style.display = 'none';
-          console.log('センサーの起動に成功しました');
+          // iOS 13+の場合、ここで直接権限をリクエスト（ユーザージェスチャー内で実行）
+          if (typeof DeviceMotionEvent !== 'undefined' && 
+              typeof DeviceMotionEvent.requestPermission === 'function') {
+            console.log('iOS: requestPermission を呼び出します');
+            
+            const permission = await DeviceMotionEvent.requestPermission();
+            console.log('権限の結果:', permission);
+            
+            if (permission === 'granted') {
+              console.log('権限が許可されました');
+              
+              // 権限取得後、センサーのリスニングを開始（権限リクエストはスキップ）
+              await this.stepCounter.sensorAdapter.startListening(
+                this.stepCounter.onMotionDetected.bind(this.stepCounter),
+                true // skipPermission = true
+              );
+              
+              this.showSuccess('センサーが起動しました！デバイスを動かしてください');
+              this.elements.permissionButton.style.display = 'none';
+              console.log('センサーの起動に成功しました');
+            } else {
+              console.error('権限が拒否されました');
+              this.showError('センサーへのアクセスが拒否されました');
+              
+              // 手動カウントボタンを表示
+              if (this.elements.manualCountButton) {
+                this.elements.manualCountButton.style.display = 'block';
+              }
+            }
+          } else {
+            // iOS 13未満、またはAndroidなど
+            console.log('権限リクエスト不要な環境です');
+            
+            // センサーのリスニングを開始
+            await this.stepCounter.startSensorListening();
+            
+            this.showSuccess('センサーが起動しました！デバイスを動かしてください');
+            this.elements.permissionButton.style.display = 'none';
+            console.log('センサーの起動に成功しました');
+          }
           
         } catch (error) {
           console.error('センサーの起動に失敗:', error);
@@ -133,10 +167,15 @@ class UIController {
 
     const updateDebugInfo = () => {
       const info = [];
-      info.push(`ブラウザ: ${navigator.userAgent.includes('iPhone') ? 'iOS' : navigator.userAgent.includes('Android') ? 'Android' : 'その他'}`);
+      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+      const hasRequestPermission = typeof DeviceMotionEvent !== 'undefined' && 
+                                    typeof DeviceMotionEvent.requestPermission === 'function';
+      
+      info.push(`ブラウザ: ${isIOS ? 'iOS' : navigator.userAgent.includes('Android') ? 'Android' : 'その他'}`);
       info.push(`HTTPS: ${location.protocol === 'https:' ? 'はい' : 'いいえ'}`);
       info.push(`DeviceMotion: ${typeof DeviceMotionEvent !== 'undefined' ? '利用可能' : '利用不可'}`);
-      info.push(`requestPermission: ${typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function' ? '必要' : '不要'}`);
+      info.push(`requestPermission: ${hasRequestPermission ? '必要（iOS 13+）' : '不要'}`);
+      info.push(`センサー起動: ${this.stepCounter.sensorAdapter.isListening ? 'はい' : 'いいえ'}`);
       info.push(`閾値: ${this.stepCounter.stepThreshold} m/s²`);
       info.push(`最小間隔: ${this.stepCounter.minStepInterval} ms`);
       info.push(`モーション検出: ${this.stepCounter.motionCount}回`);
@@ -150,10 +189,14 @@ class UIController {
           this.elements.sensorStatus.style.background = '#d4edda';
           this.elements.sensorStatus.style.color = '#155724';
           this.elements.sensorStatusText.textContent = `センサー動作中 (${this.stepCounter.motionCount}回検出)`;
+        } else if (this.stepCounter.sensorAdapter.isListening) {
+          this.elements.sensorStatus.style.background = '#cce5ff';
+          this.elements.sensorStatus.style.color = '#004085';
+          this.elements.sensorStatusText.textContent = 'センサー起動済み (デバイスを動かしてください)';
         } else {
           this.elements.sensorStatus.style.background = '#fff3cd';
           this.elements.sensorStatus.style.color = '#856404';
-          this.elements.sensorStatusText.textContent = 'センサー待機中... (デバイスを動かしてください)';
+          this.elements.sensorStatusText.textContent = 'センサー待機中... (ボタンをタップしてください)';
         }
       }
     };

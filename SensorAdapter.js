@@ -48,10 +48,11 @@ class SensorAdapter {
   /**
    * センサーのリスニングを開始
    * @param {Function} callback - 加速度データを受け取るコールバック関数
+   * @param {boolean} skipPermission - 権限リクエストをスキップ（既に取得済みの場合）
    * @throws {Error} センサーが利用できない場合、または権限が拒否された場合
    */
-  async startListening(callback) {
-    console.log('startListening called, isListening:', this.isListening);
+  async startListening(callback, skipPermission = false) {
+    console.log('startListening called, isListening:', this.isListening, 'skipPermission:', skipPermission);
     
     if (this.isListening) {
       console.log('Already listening, skipping');
@@ -66,13 +67,15 @@ class SensorAdapter {
 
     console.log('DeviceMotion API is available');
 
-    // 権限をリクエスト
-    const hasPermission = await this.requestPermission();
-    console.log('Permission result:', hasPermission);
-    
-    if (!hasPermission) {
-      console.error('DeviceMotion permission denied');
-      throw new Error('DeviceMotion permission denied');
+    // 権限をリクエスト（スキップしない場合のみ）
+    if (!skipPermission) {
+      const hasPermission = await this.requestPermission();
+      console.log('Permission result:', hasPermission);
+      
+      if (!hasPermission) {
+        console.error('DeviceMotion permission denied');
+        throw new Error('DeviceMotion permission denied');
+      }
     }
 
     this.callback = callback;
