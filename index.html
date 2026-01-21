@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="スマートフォン向け歩数計アプリケーション">
+    <title>歩数計アプリ</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>歩数計</h1>
+        </header>
+
+        <main>
+            <!-- 歩数表示セクション -->
+            <section class="step-counter-section">
+                <div class="step-display-container">
+                    <div id="step-display" class="step-display">0</div>
+                    <div class="step-label">歩</div>
+                </div>
+            </section>
+
+            <!-- 次回リセット時刻表示 -->
+            <section class="info-section">
+                <div class="info-item">
+                    <span class="info-label">次回リセット:</span>
+                    <span id="next-reset" class="info-value">--</span>
+                </div>
+            </section>
+
+            <!-- 設定セクション -->
+            <section class="settings-section">
+                <h2>設定</h2>
+                <div class="setting-item">
+                    <label for="reset-time-input">リセット時刻 (HH:MM):</label>
+                    <div class="input-group">
+                        <input 
+                            type="time" 
+                            id="reset-time-input" 
+                            class="time-input"
+                            value="00:00"
+                        >
+                        <button id="save-reset-time" class="btn-primary">保存</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- エラー/成功メッセージ -->
+            <div id="error-message" class="message"></div>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 歩数計アプリ</p>
+        </footer>
+    </div>
+
+    <!-- コンポーネントスクリプトを読み込み -->
+    <script src="StorageManager.js"></script>
+    <script src="SensorAdapter.js"></script>
+    <script src="StepCounter.js"></script>
+    <script src="ResetTimer.js"></script>
+    <script src="UIController.js"></script>
+    
+    <!-- アプリケーションのエントリーポイント -->
+    <script src="app.js"></script>
+</body>
+</html>
