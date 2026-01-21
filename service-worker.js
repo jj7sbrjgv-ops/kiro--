@@ -3,7 +3,7 @@
  * PWA対応のためのサービスワーカー
  */
 
-const CACHE_NAME = 'step-counter-v1';
+const CACHE_NAME = 'step-counter-v2';
 const urlsToCache = [
   './',
   './index.html',
@@ -25,18 +25,32 @@ self.addEventListener('install', (event) => {
         return cache.addAll(urlsToCache);
       })
   );
+  // すぐに新しいSWを有効化して古いキャッシュを置き換える
+  self.skipWaiting();
 });
 
 // フェッチ時にキャッシュから返す
 self.addEventListener('fetch', (event) => {
+  const { request } = event;
+
+  // ナビゲーションリクエストはindex.htmlを返してPWA内ルーティングを維持
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      caches.match('./index.html').then((cached) => {
+        if (cached) return cached;
+        return fetch('./index.html');
+      })
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
+    caches.match(request)
       .then((response) => {
-        // キャッシュにあればそれを返す
         if (response) {
           return response;
         }
-        return fetch(event.request);
+        return fetch(request);
       })
   );
 });
@@ -52,6 +66,6 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
