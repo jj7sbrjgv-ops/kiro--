@@ -9,11 +9,23 @@
 // ブラウザ環境とNode.js環境の両方に対応
 // ブラウザ環境では、各コンポーネントファイルがwindowオブジェクトに登録される
 // Node.js環境（テスト用）では、requireでインポートする
-const StorageManager = typeof window !== 'undefined' ? window.StorageManager : require('./StorageManager.js');
-const SensorAdapter = typeof window !== 'undefined' ? window.SensorAdapter : require('./SensorAdapter.js');
-const StepCounter = typeof window !== 'undefined' ? window.StepCounter : require('./StepCounter.js');
-const ResetTimer = typeof window !== 'undefined' ? window.ResetTimer : require('./ResetTimer.js');
-const UIController = typeof window !== 'undefined' ? window.UIController : require('./UIController.js');
+let StorageManager, SensorAdapter, StepCounter, ResetTimer, UIController;
+
+if (typeof window !== 'undefined') {
+  // ブラウザ環境：windowから取得（既に登録済み）
+  StorageManager = window.StorageManager;
+  SensorAdapter = window.SensorAdapter;
+  StepCounter = window.StepCounter;
+  ResetTimer = window.ResetTimer;
+  UIController = window.UIController;
+} else {
+  // Node.js環境（テスト用）
+  StorageManager = require('./StorageManager.js');
+  SensorAdapter = require('./SensorAdapter.js');
+  StepCounter = require('./StepCounter.js');
+  ResetTimer = require('./ResetTimer.js');
+  UIController = require('./UIController.js');
+}
 
 // グローバル変数（アプリケーションのライフサイクル管理用）
 let app = null;
