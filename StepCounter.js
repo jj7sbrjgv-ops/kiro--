@@ -19,10 +19,12 @@ class StepCounter {
     this.storageManager = storageManager;
     this.sensorAdapter = sensorAdapter;
     this.lastAcceleration = null;
-    this.stepThreshold = 1.2; // 歩数として認識する加速度の閾値（m/s²）
+    this.stepThreshold = 0.5; // 歩数として認識する加速度の閾値（m/s²）- より敏感に
     this.observers = []; // オブザーバーパターン用のリスナー配列
     this.lastStepTime = 0; // 最後に歩数をカウントした時刻
-    this.minStepInterval = 300; // 最小歩数間隔（ミリ秒）- 誤検知を防ぐ
+    this.minStepInterval = 200; // 最小歩数間隔（ミリ秒）- より短く
+    this.motionCount = 0; // デバッグ用：モーションイベントのカウント
+    this.maxMagnitude = 0; // デバッグ用：最大加速度の記録
   }
 
   /**
@@ -67,6 +69,18 @@ class StepCounter {
    * 要件: 1.1 - 動きを分析して歩数としてカウント
    */
   onMotionDetected(acceleration) {
+    this.motionCount++; // デバッグ用
+    
+    // 加速度の大きさを計算
+    const magnitude = Math.sqrt(
+      acceleration.x ** 2 + 
+      acceleration.y ** 2 + 
+      acceleration.z ** 2
+    );
+    
+    // デバッグ情報を通知（より詳細に）
+    this.notifyMotionDetected(acceleration, magnitude);
+    
     if (this.isStep(acceleration)) {
       this.incrementStep();
     }
@@ -223,6 +237,22 @@ class StepCounter {
       } catch (error) {
         console.error('Error notifying observer:', error);
       }
+    }
+  }
+
+  /**
+   * モーション検出を通知（デバッグ用）
+   */
+  notifyMotionDetected(acceleration, magnitude) {
+    // デバッグ情報をコンソールに出力
+    if (this.motionCount % 10 === 0) { // 10回に1回だけ出力
+      console.log(`Motion #${this.motionCount}: x=${acceleration.x.toFixed(2)}, y=${acceleration.y.toFixed(2)}, z=${acceleration.z.toFixed(2)}, magnitude=${magnitude.toFixed(2)}, threshold=${this.stepThreshold}`);
+    }
+    
+    // 最大値を記録（デバッグ用）
+    if (!this.maxMagnitude || magnitude > this.maxMagnitude) {
+      this.maxMagnitude = magnitude;
+      console.log(`新しい最大値: ${magnitude.toFixed(2)} m/s²`);
     }
   }
 

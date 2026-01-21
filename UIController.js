@@ -39,7 +39,9 @@ class UIController {
       errorMessage: document.getElementById('error-message'),
       permissionButton: document.getElementById('request-permission-btn'),
       manualCountButton: document.getElementById('manual-count-btn'),
-      debugInfo: document.getElementById('debug-info')
+      debugInfo: document.getElementById('debug-info'),
+      sensorStatus: document.getElementById('sensor-status'),
+      sensorStatusText: document.getElementById('sensor-status-text')
     };
 
     // デバッグ情報を表示
@@ -136,13 +138,38 @@ class UIController {
   showDebugInfo() {
     if (!this.elements.debugInfo) return;
 
-    const info = [];
-    info.push(`ブラウザ: ${navigator.userAgent.includes('iPhone') ? 'iOS' : navigator.userAgent.includes('Android') ? 'Android' : 'その他'}`);
-    info.push(`HTTPS: ${location.protocol === 'https:' ? 'はい' : 'いいえ'}`);
-    info.push(`DeviceMotion: ${typeof DeviceMotionEvent !== 'undefined' ? '利用可能' : '利用不可'}`);
-    info.push(`requestPermission: ${typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function' ? '必要' : '不要'}`);
+    const updateDebugInfo = () => {
+      const info = [];
+      info.push(`ブラウザ: ${navigator.userAgent.includes('iPhone') ? 'iOS' : navigator.userAgent.includes('Android') ? 'Android' : 'その他'}`);
+      info.push(`HTTPS: ${location.protocol === 'https:' ? 'はい' : 'いいえ'}`);
+      info.push(`DeviceMotion: ${typeof DeviceMotionEvent !== 'undefined' ? '利用可能' : '利用不可'}`);
+      info.push(`requestPermission: ${typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function' ? '必要' : '不要'}`);
+      info.push(`閾値: ${this.stepCounter.stepThreshold} m/s²`);
+      info.push(`最小間隔: ${this.stepCounter.minStepInterval} ms`);
+      info.push(`モーション検出: ${this.stepCounter.motionCount}回`);
+      info.push(`最大加速度: ${this.stepCounter.maxMagnitude.toFixed(2)} m/s²`);
+      
+      this.elements.debugInfo.innerHTML = info.join('<br>');
+      
+      // センサー状態を更新
+      if (this.elements.sensorStatus && this.elements.sensorStatusText) {
+        if (this.stepCounter.motionCount > 0) {
+          this.elements.sensorStatus.style.background = '#d4edda';
+          this.elements.sensorStatus.style.color = '#155724';
+          this.elements.sensorStatusText.textContent = `センサー動作中 (${this.stepCounter.motionCount}回検出)`;
+        } else {
+          this.elements.sensorStatus.style.background = '#fff3cd';
+          this.elements.sensorStatus.style.color = '#856404';
+          this.elements.sensorStatusText.textContent = 'センサー待機中... (デバイスを動かしてください)';
+        }
+      }
+    };
     
-    this.elements.debugInfo.innerHTML = info.join('<br>');
+    // 初回表示
+    updateDebugInfo();
+    
+    // 定期的に更新
+    setInterval(updateDebugInfo, 1000);
   }
 
   /**

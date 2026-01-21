@@ -20,8 +20,12 @@
                     <div id="step-display" class="step-display">0</div>
                     <div class="step-label">歩</div>
                 </div>
+                <!-- センサー状態インジケーター -->
+                <div id="sensor-status" style="margin-top: 1rem; padding: 0.5rem; border-radius: 8px; background: #f0f0f0; text-align: center;">
+                    <span id="sensor-status-text">センサー待機中...</span>
+                </div>
                 <!-- デバッグ情報 -->
-                <div id="debug-info" style="margin-top: 1rem; font-size: 0.8rem; color: #666;"></div>
+                <div id="debug-info" style="margin-top: 1rem; font-size: 0.8rem; color: #666; text-align: left; padding: 0.5rem; background: #f9f9f9; border-radius: 4px;"></div>
                 <!-- センサー権限リクエストボタン（iOS用） -->
                 <button id="request-permission-btn" class="btn-primary" style="margin-top: 1rem;">
                     センサーを有効にする
